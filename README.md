@@ -1,3 +1,17 @@
+# Fixing/upgrading the original repo:
+- Enable Single Server AI Hosting (e.g. LM Studio hosts both models)
+- Longer Conversations: up to 500
+
+# Planned Features
+- Unlimited Conversations
+- >2 AIs
+- Conversation Pauses
+- Conversation Interjections
+- TTS Dialogue
+
+# Original Readme
+[Original Repo by hugalafutro](https://github.com/hugalafutro/llm-convo)
+
 # LLM Convo
 ***`I have no idea what I'm doing it was the LLMs I swear`***
 
