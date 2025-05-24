@@ -178,18 +178,20 @@
         <div class="endpoint-setup">
             <div class="endpoint">
                 <input type="text" id="endpoint1" placeholder="Enter Endpoint 1 URL">
+                <input type="text" id="model1" placeholder="Enter Model 1 Name">
                 <textarea id="system-prompt1" placeholder="Enter System Prompt for Endpoint 1 (optional)"></textarea>
                 <button id="connect-endpoint1" class="connect-btn" onclick="connectEndpoint(1)">Connect Endpoint 1</button>
             </div>
             <div class="endpoint">
                 <input type="text" id="endpoint2" placeholder="Enter Endpoint 2 URL">
+                <input type="text" id="model2" placeholder="Enter Model 2 Name">
                 <textarea id="system-prompt2" placeholder="Enter System Prompt for Endpoint 2 (optional)"></textarea>
                 <button id="connect-endpoint2" class="connect-btn" onclick="connectEndpoint(2)">Connect Endpoint 2</button>
             </div>
         </div>
         <div id="num-exchanges-container">
             <label for="num-exchanges">Number of Exchanges: <span id="num-exchanges-value">3</span></label>
-            <input type="range" id="num-exchanges" min="3" max="30" value="3">
+            <input type="range" id="num-exchanges" min="3" max="500" value="3">
         </div>
 
         <div id="conversation">
@@ -211,6 +213,7 @@
         function connectEndpoint(endpointNum) {
             var endpointUrl = $('#endpoint' + endpointNum).val();
             var systemPrompt = $('#system-prompt' + endpointNum).val();
+            var model = $('#model' + endpointNum).val();
             if (endpointUrl) {
                 $.ajax({
                     url: '/connect',
@@ -219,7 +222,8 @@
                     data: JSON.stringify({
                         endpoint_num: endpointNum, 
                         endpoint_url: endpointUrl,
-                        system_prompt: systemPrompt
+                        system_prompt: systemPrompt,
+                        model: model
                     }),
                     success: function(response) {
                         if (response.status === "success") {
@@ -232,6 +236,7 @@
                             }
                             // Save to localStorage
                             localStorage.setItem('endpoint' + endpointNum, endpointUrl);
+                            localStorage.setItem('model' + endpointNum, model);
                             localStorage.setItem('systemPrompt' + endpointNum, systemPrompt);
                         } else {
                             $('#connect-endpoint' + endpointNum).css('background-color', 'var(--button-pending-bg-color)');
@@ -272,6 +277,8 @@
             $('#endpoint2').val(localStorage.getItem('endpoint2') || '');
             $('#system-prompt1').val(localStorage.getItem('systemPrompt1') || '');
             $('#system-prompt2').val(localStorage.getItem('systemPrompt2') || '');
+            $('#model1').val(localStorage.getItem('model1') || '');
+            $('#model2').val(localStorage.getItem('model2') || '');
 
             $('#num-exchanges').on('input', function() {
                 $('#num-exchanges-value').text($(this).val());
