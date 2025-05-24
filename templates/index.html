@@ -172,6 +172,7 @@
     <div id="chat-container">
         <h1>LLM Convo</h1>
         <div class="theme-toggle">
+        <button id="clear-settings" class="clear-btn" onclick="clearSettings()">Clear Settings</button>
             <input type="checkbox" id="theme-switch">
             <label for="theme-switch"></label>
         </div>
@@ -209,6 +210,11 @@
         var currentXHR = null;  // Track the active request for stopping
         var endpoint1Connected = false;
         var endpoint2Connected = false;
+
+        function clearSettings() {
+            currentXHR = new XMLHttpRequest();
+                    currentXHR.open('POST', '/clear', true);
+        }
 
         function connectEndpoint(endpointNum) {
             var endpointUrl = $('#endpoint' + endpointNum).val();

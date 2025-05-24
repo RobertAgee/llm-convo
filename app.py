@@ -14,6 +14,18 @@ SYSTEM_PROMPT2 = ""
 MODEL1 = ""
 MODEL2 = ""
 
+@app.route('/clear')
+def clear_settings():
+    global ENDPOINT1, ENDPOINT2, SYSTEM_PROMPT1, SYSTEM_PROMPT2, MODEL1, MODEL2
+    ENDPOINT1 = ""
+    ENDPOINT2 = ""
+    SYSTEM_PROMPT1 = ""
+    SYSTEM_PROMPT2 = ""
+    MODEL1 = ""
+    MODEL2 = ""
+
+    return "Settings cleared"
+    
 def get_model_name(endpoint):
     try:
         response = requests.get(f"{endpoint}/v1/models")
@@ -25,13 +37,13 @@ def get_model_name(endpoint):
     except:
         return 'Unknown Model'
 
-def stream_response(endpoint, prompt, conversation_history):
+def stream_response(endpoint, model, system, prompt, conversation_history):
     headers = {
         "Content-Type": "application/json"
     }
     data = {
-        "model": "gpt-3.5-turbo",
-        "messages": conversation_history + [{"role": "user", "content": prompt}],
+        "model": model,
+        "messages": conversation_history + [{"role": "system", "content": system}, {"role": "user", "content": prompt}],
         "stream": True  # We need to stream the response
     }
 
@@ -82,20 +94,27 @@ def connect():
     endpoint_num = request.json['endpoint_num']
     endpoint_url = request.json['endpoint_url']
     system_prompt = request.json['system_prompt']
-    
+    model = request.json['model']
+
+    print('endpoint_num:', endpoint_num)
+    print('endpoint_url:', endpoint_url)
+    print('system_prompt:', system_prompt)
+    print('model:', model)
+
+
     if endpoint_num == 1:
         ENDPOINT1 = endpoint_url
         SYSTEM_PROMPT1 = system_prompt
-        MODEL1 = get_model_name(ENDPOINT1)
+        MODEL1 = model
     else:
         ENDPOINT2 = endpoint_url
         SYSTEM_PROMPT2 = system_prompt
-        MODEL2 = get_model_name(ENDPOINT2)
+        MODEL2 = model
     
     try:
         response = requests.get(endpoint_url)
         if response.status_code == 200:
-            return jsonify({"status": "success", "message": f"Connected to Endpoint {endpoint_num}"})
+            return jsonify({"status": "success", "message": f"Connected {model} to Endpoint {endpoint_num}"})
         else:
             return jsonify({"status": "error", "message": f"Failed to connect to Endpoint {endpoint_num}"})
     except requests.RequestException:
@@ -110,7 +129,7 @@ def chat():
     num_exchanges = int(request.json['num_exchanges'])
 
     conversation_history = [
-        {"role": "system", "content": SYSTEM_PROMPT1},
+        # {"role": "system", "content": SYSTEM_PROMPT2},
         {"role": "user", "content": initial_prompt}
     ]
 
@@ -118,11 +137,11 @@ def chat():
         current_prompt = initial_prompt
 
         for i in range(num_exchanges):
-            # Stream response from Model 2
-            yield json.dumps({"sender": "Model 2", "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "model": MODEL2}) + '\n'
+            # Stream response from Model 1
+            yield json.dumps({"sender": "Model 1", "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "model": MODEL1}) + '\n'
             full_response = ""
-            tokens = 0  # Track tokens from Model 2
-            for chunk in stream_response(ENDPOINT2, current_prompt, conversation_history):
+            tokens = 0  # Track tokens from Model 1
+            for chunk in stream_response(ENDPOINT1, MODEL1, SYSTEM_PROMPT1, current_prompt, conversation_history):
                 if 'choices' in chunk:
                     content = chunk['choices'][0]['delta'].get('content', '')
                     full_response += content
@@ -136,19 +155,19 @@ def chat():
             yield json.dumps({
                 "end": True,
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "model": MODEL2,
+                "model": MODEL1,
                 "total_tokens": tokens,
                 "tps": tps
             }) + '\n'
             
-            current_prompt = full_response  # Prepare next response for Model 1
+            current_prompt = full_response  # Prepare next response for Model 2
             conversation_history.append({"role": "assistant", "content": full_response})
 
-            # Stream response from Model 1
-            yield json.dumps({"sender": "Model 1", "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "model": MODEL1}) + '\n'
+            # Stream response from Model 2
+            yield json.dumps({"sender": "Model 2", "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "model": MODEL2}) + '\n'
             full_response = ""
-            tokens = 0  # Track tokens from Model 1
-            for chunk in stream_response(ENDPOINT1, current_prompt, conversation_history):
+            tokens = 0  # Track tokens from Model 2
+            for chunk in stream_response(ENDPOINT2, MODEL2, SYSTEM_PROMPT2, current_prompt, conversation_history):
                 if 'choices' in chunk:
                     content = chunk['choices'][0]['delta'].get('content', '')
                     full_response += content
@@ -162,12 +181,12 @@ def chat():
             yield json.dumps({
                 "end": True,
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "model": MODEL1,
+                "model": MODEL2,
                 "total_tokens": tokens,
                 "tps": tps
             }) + '\n'
 
-            current_prompt = full_response  # Prepare next response for Model 2
+            current_prompt = full_response  # Prepare next response for Model 1
             conversation_history.append({"role": "assistant", "content": full_response})
 
     return Response(stream_with_context(generate()), content_type='application/json')
